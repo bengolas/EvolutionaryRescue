@@ -1,0 +1,6 @@
+Our paper includes an appendix (SA3) which, with some editing of model details, can be used to recreate almost all of our presented results, with the exception of a few Appendix analyses.
+In this file we include all the code that was simulated to develop our figures and results.
+Individual .R files correspond to model specifics (e.g. SIRM is the Reservoir model, SIRSMlg is the Reservoir-Impermanent-Logistic model) and/or code used to generate appendices.
+.csv files are simulation output that correspond with the model of the same name.
+The works herein are the results of 5 years of simulation and analysis. They represent a grad student's journey from learning how to code up to publication.
+If there are questions regarding how to navigate these files, please do not hesitate to contact Ben Golas at bengolasvmd@gmail.com.
