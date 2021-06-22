@@ -193,13 +193,13 @@ rm(list=ls())
     survive <- 0
     if(N[length(N)]>0) survive <- 1
     
-    output <- c(N[length(N)],min(N),g.start,g.avg[1],max(g.avg,na.rm=TRUE),evolve,survive)
+    output <- c(N[length(N)],min(N),g.start,g.avg[1],max(g.avg,na.rm=TRUE),evolve,survive,sigma)
     return(output)
     
   } #end function
   
-  sigma.values <- seq(0,0.2,0.0025)
-  g <- c(0)
+  sigma.values <- seq(0,0.2,0.02)
+  g.values <- seq(0,0.2,0.02)
   
   library(doParallel)
   detectCores()
@@ -208,18 +208,22 @@ rm(list=ls())
   getDoParWorkers()
   
   
-  rep <- 100
+  rep <- 50
   
-  results <- foreach(i = 1:length(sigma.values), .combine= cbind) %dopar% {
-    g.start <- 0
+  results <- foreach(i = 1:length(sigma.values), .combine= rbind) %dopar% {
+    ind.results <- NA
+    for(j in 1:length(g.values)){
+    g.start <- rep(g.values[j],each=rep)
     sigma <- rep(sigma.values[i], rep)
-    ind.results <- mapply(SIR.sto,g.start,sigma=sigma,t=t,r=r,mu=mu,B=B,alpha=alpha,K=K,phi=phi,delta=delta,lambda=lambda,Br=Br,S.start=S.start,E.start=E.start,I.start=I.start,R.start=R.start,M.start=M.start)
+    ind.results <- cbind(ind.results,mapply(SIR.sto,g.start,sigma=sigma,t=t,r=r,mu=mu,B=B,alpha=alpha,K=K,phi=phi,delta=delta,lambda=lambda,Br=Br,S.start=S.start,E.start=E.start,I.start=I.start,R.start=R.start,M.start=M.start))
+    }
+    ind.results <- t(ind.results)[-1,]
     return(ind.results)
   }
   
   
-  ind.results <- as.data.frame(t(results))
-  colnames(ind.results) <- c("Nt","min.N","g","g.1","max.g","evolve","survive")
+  ind.results <- as.data.frame(results)
+  colnames(ind.results) <- c("Nt","min.N","g","g.1","max.g","evolve","survive","sigma")
   ind.results$survive <- as.numeric(ind.results$survive)
   
   
@@ -230,12 +234,12 @@ rm(list=ls())
     p.survive <- mean(ind.results$survive[(1+rep*(i-1)):(rep*i)])
     max.evolve <- mean(ind.results$evolve[(1+rep*(i-1)):(rep*i)])
     g.1 <- mean(ind.results$g.1[(1+rep*(i-1)):(rep*i)])
-    group.results <- cbind(group.results,c(p.survive,ind.results$g[rep*i],max.evolve,g.1))
+    group.results <- cbind(group.results,c(p.survive,ind.results$g[rep*i],max.evolve,g.1,ind.results$sigma[rep*i]))
   }
   
   
   group.results <- as.data.frame(t(group.results[,-1]))
-  colnames(group.results) <- c("p.survive","g","max.evolve","g.1")
+  colnames(group.results) <- c("survive","g","max.evolve","g.1","sd")
   
   write.csv(x = as.data.frame(group.results), file = "Tier3SIMSRSevolve.csv")
   
@@ -248,5 +252,16 @@ rm(list=ls())
   
   
   
-
+  
+  p2 <- ggplot(group.results,aes(g.1,survive,group=sd)) + geom_line(aes(color=sd),size=1.25)  + 
+    xlab(TeX("Mean initial resistance rate $\\bar{\\gamma}_0$")) + ylab(TeX("Proportion surviving populations")) +
+    geom_point(aes(g.1,survive,color=sd),size=3.5) +
+    theme_classic() +
+    theme(text = element_text(size=16)) +
+    ylim(-0.01,1.01) +
+    scale_color_viridis(option="viridis",end=0.9,direction=-1,name=TeX("Variance $\\sigma^2$"), labels=c("0","0.0025","0.01","0.0225","0.04")) +
+    geom_line(data=group.results[which(group.results$sd==0),],aes(g.1,spline),size=1.5)
+  
+  
+  p2
   
